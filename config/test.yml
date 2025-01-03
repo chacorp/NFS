@@ -1,0 +1,83 @@
+# Test args
+
+# Target mesh to control
+# Change the mesh to whatever you want, after roughtly align the mesh via align.blend
+# Remember to first cut the eyes, nose and mouth of your mesh.
+
+# mesh_file: './test-mesh/coma_02_no_inner_final.obj'
+# mesh_file: './test-mesh/meshtalk_20180426_cut.obj'
+# mesh_file: './test-mesh/m--20171024--0000--002757580--GHS.obj'
+# mesh_file: './test-mesh/flame_final.obj'
+mesh_file: './test-mesh/tmp/biwi_F1.obj'
+# mesh_file: './test-mesh/FaceTalk_170725_00137_TA.ply'
+
+# Source meshes to retarget from
+# ICT 
+dataset: 'ICT_live'
+data_head: 'ICT_live_100'
+# MF
+# dataset: 'MF'
+# data_head: 'MF_all_v5'
+
+iden_idx: 0
+shift: [0, 0, 0]
+face_model_scale: 0.1
+
+# Data args
+data_dir: ./data
+save_dir: ./experiments
+log_dir: ./ckpt
+cache_dir: ./cache
+
+img_cache: ICT_img.npy
+
+# 
+device: cuda:0
+grad: True
+dfn_info_per_loader: True
+
+
+# Exp args 
+global_encoder: dfn
+dfn_blocks: 4
+wks: False
+wks_std_file: ./data/ICT_live_100
+
+feat_dim: 128
+rig_dim: 128
+feature_type: cents&norms
+
+
+ckpt_path_a2r: './ckpt/A2R-250_epoch-lr_0.0002-temp_0.5/audio2rig_best.pth'
+ckpt_path_nfr: './ckpt/2023-11-24-10-49-41/nfr_model_240.pth'
+
+
+# Ckpt
+resume_id: 0
+load_head: ICT_augment_cnn_ext_dfn4_grad
+
+
+
+# img args
+img: True
+img_enc: cnn
+img_file: ./data/MF_all_v5
+pix2face: False
+img_norm: gn
+img_feat: 128
+
+# Iden args
+iden_blocks: 2
+global_pn: True
+global_pn_shape: 100
+pn_norm: True
+
+
+# MLP args
+num_gn: 32
+mlp_hid_channel: 256
+zero_mean: True
+std_file: ./data/ICT_live_100
+
+
+

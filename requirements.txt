@@ -1,0 +1,22 @@
+# cupy==11.3
+# torch==1.13.1+cu117
+# torchvision==0.14.1+cu117
+# torchaudio==0.13.1
+k3d==2.16.1
+numpy==1.23.0
+openmesh==1.2.1
+transformers==4.10.0
+scipy==1.10.1
+mediapy==1.1.2
+trimesh==4.3.1
+PyOpenGL==3.1.1a1
+pyrender==0.1.45
+opencv-python==4.5.5.64
+einops==0.7.0
+protobuf==3.20.0 # for tensorboard
+libigl==2.5.1
+open3d==0.18.0
+vedo==2024.5.1 # optional
+https://data.pyg.org/whl/torch-1.13.0%2Bcu117/torch_cluster-1.6.1%2Bpt113cu117-cp38-cp38-linux_x86_64.whl
+https://data.pyg.org/whl/torch-1.13.0%2Bcu117/torch_scatter-2.1.0%2Bpt113cu117-cp38-cp38-linux_x86_64.whl
+https://data.pyg.org/whl/torch-1.13.0%2Bcu117/torch_sparse-0.6.17%2Bpt113cu117-cp38-cp38-linux_x86_64.whl
