@@ -477,7 +477,7 @@ class MeshDataset(data.Dataset):
         #self.ict_synth_len_list = {}
         
         total_len=0
-        id_sent_len=self.iden_vecs.shape[0]*self.expression_vecs.shape[0]
+        id_sent_len=self.iden_vecs.shape[0] #*self.expression_vecs.shape[0]
         for id_ in tqdm(self.ict_data_synth[self.mode], desc='ict synth'):
             
             curr_v_dir=f"{self.ict_dir}/{id_}/vertices_npy"
@@ -590,8 +590,11 @@ class MeshDataset(data.Dataset):
         return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
         
     def get_ICTsynthetic(self, index):
-        e_index = index % self.expression_vecs.shape[0]
-        id_idx = index // self.expression_vecs.shape[0]
+        #e_index = index % self.expression_vecs.shape[0]
+        #id_idx = index // self.expression_vecs.shape[0]
+
+        id_idx = index
+        e_index = random.randint(0, self.expression_vecs.shape[0] -1)
         
         if self.use_ict_synth_single:
             id_idx = 100

@@ -10,27 +10,27 @@ This is official implementation of the paper 'Neural Face Skinning for Mesh-agno
 - [x] Installation
 - [x] Inference
 - [x] Train code
-- [x] Data preparation code
 - [ ] Dataloader for custom data
 - [ ] Evaluation
 - [ ] Pretrained model
 
 
-
 ## 1. Installation
 ### Environment
-- System requirement: Ubuntu 20.04/Ubuntu 22.04, Cuda 11.8
+- System requirement: Ubuntu 20.04/Ubuntu 22.04, Cuda 11.8 | Cuda 12.1
 - Tested GPU: NVIDIA-RTX-A5000
 
-Use docker image `chacorp/audio2face:1.0`
+Use docker image as below
 
 ```bash
-docker pull chacorp/audio2face:1.0
+docker pull chacorp/audio2face:1.0 # cuda 11.8
+docker pull chacorp/diff3f:latest # cuda 12.1
 ```
 
 All dependencies for the environment are provided in `requirements.txt`.
 ```bash
 pip install -r requirements.txt
+# pip install -r requirements-cuda12.1.txt ## if using chacorp/diff3f:latest, use this
 ```
 
 ### Downloads
@@ -56,6 +56,9 @@ NFS/
   ├─ experiments/    # NFR files
   ├─ test-mesh/      # NFR files
   └─ third_party/    # NFR files
+     ├─ diffusion-net
+     ├─ ICT-FaceKit
+     └─ mesh_signatures
 ```
 
 ### Pretrained model

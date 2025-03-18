@@ -23,7 +23,7 @@ def vis_rig(rig, save_fn, normalize=False):
     # rig shape: (bs, T, 53)
     heatmap = rig.unsqueeze(1) # (bs, 1, T, 53)
     heatmap = heatmap.repeat(1, 3, 1, 1) # (bs, 3, T, 53) --> height, width
-    tvu.save_image(heatmap, f"{save_fn}", nrow=1, range=(0,1),normalize=normalize)
+    tvu.save_image(heatmap, f"{save_fn}", nrow=1, normalize=normalize)
 
 def frustum(left, right, bottom, top, znear, zfar):
     M = np.zeros((4, 4), dtype=np.float32)
