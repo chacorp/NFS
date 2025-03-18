@@ -29,9 +29,13 @@ docker pull chacorp/diff3f:latest # cuda 12.1
 
 All dependencies for the environment are provided in `requirements.txt`.
 ```bash
+bash setup.sh -m 1 # if cuda 11.8
+# bash setup.sh -m 2 # if cuda 12.1
+```
+<!-- ```bash
 pip install -r requirements.txt
 # pip install -r requirements-cuda12.1.txt ## if using chacorp/diff3f:latest, use this
-```
+``` -->
 
 ### Downloads
 Download the following files from the link and place them in the root directory of this repo.
