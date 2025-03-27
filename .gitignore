@@ -25,7 +25,6 @@ x_*.npy
 
 utils/*/*lve*.txt
 
-notebook/
 */*/*.ipynb_checkpoints/
 */*.ipynb_checkpoints
 *.ipynb_checkpoints

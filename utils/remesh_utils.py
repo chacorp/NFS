@@ -521,6 +521,27 @@ class ICT_face_model():
         if return_idx:
             return mesh, mesh_v_idx
         return mesh
+    
+    def get_random_mesh(self, mesh_std=False, return_idx=False):
+        """
+        Args:
+            mesh_std (bool): if True, apply `mesh standardization`
+        """
+        id_disps = self.get_id_disp(np.random.rand(100))[0]
+        mesh = trimesh.Trimesh(
+            vertices=self.neutral_verts + id_disps, 
+            faces=self.faces, 
+            process=False, maintain_order=True
+        )
+        mesh_v_idx = np.arange(self.neutral_verts.shape[0])
+        
+        ## mesh_standardization
+        if mesh_std:
+            mesh, mesh_v_idx = mesh_standardization(mesh, mesh_data='ict', return_idx=True)
+        
+        if return_idx:
+            return mesh, mesh_v_idx
+        return mesh
 
     def apply_coeffs(self, id_coeff, exp_coeffs=None, mesh_v_idx=None, return_all=False, region=0):
         """

@@ -185,7 +185,7 @@ class Trainer():
             shuffle=True,
             balance=False,
             n_sampling=self.opts.n_sampling,
-            n_=64
+            n_=8
         )
         self.train_dataloader = torch.utils.data.DataLoader(
             self.train_dataset, 
@@ -351,17 +351,15 @@ class Trainer():
                         if mesh_data == 'ict':
                             c_list=[gt_seg]*2+[seg for seg in pred_seg[frame:frame+2]]
                         else:
-                            c_list=[seg for seg in pred_seg[frame:frame+2]]
-                        try:    
-                            plot_image_array_seg(
-                                v_list, f_list, c_list, 
-                                rot_list=[[0,0,0]] * len_v, 
-                                size=1, bg_black=False, mode='shade', 
-                                logdir=save_logdir, 
-                                name=save_img_name, save=True
-                            )
-                        except:
-                            import pdb;pdb.set_trace()
+                            c_list=[seg for seg in pred_seg[frame:frame+2]]*2
+                            
+                        plot_image_array_seg(
+                            v_list, f_list, c_list, 
+                            rot_list=[[0,0,0]] * len_v, 
+                            size=1, bg_black=False, mode='shade', 
+                            logdir=save_logdir, 
+                            name=save_img_name, save=True
+                        )
                     else:
                         plot_image_array(
                             v_list, f_list, 
@@ -463,7 +461,7 @@ class Trainer():
                         if mesh_data == 'ict':
                             c_list=[gt_seg]*2+[seg for seg in pred_seg[frame:frame+2]]
                         else:
-                            c_list=[seg for seg in pred_seg[frame:frame+2]]
+                            c_list=[seg for seg in pred_seg[frame:frame+2]]*2
                         
                         plot_image_array_seg(
                             v_list, f_list, c_list, 

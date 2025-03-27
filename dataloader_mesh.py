@@ -416,6 +416,9 @@ class MeshDataset(data.Dataset):
         
         self.ict_dir = os.path.join(self.ict_basedir, 'split_set', self.mode)
         
+        self.ict_real_count = [0] # start
+        self.ict_real_remain = [0] # start
+        
         self.ict_real_v_npy_list = {}
         self.ict_real_n_npy_list = {}
         self.ict_real_exp_coeff_list = {}
@@ -440,21 +443,40 @@ class MeshDataset(data.Dataset):
             self.ict_real_exp_coeff_list[id_]=sorted(glob.glob(f"{curr_r_dir}/*.npy"))
             
             for sen_ in v_listdirs:
-                self.ict_real_v_npy_list[id_][sen_]=sorted(glob.glob(f"{curr_v_dir}/{sen_}/*.npy"))
-                self.ict_real_n_npy_list[id_][sen_]=sorted(glob.glob(f"{curr_n_dir}/{sen_}/*.npy"))
+                v_npy_list = sorted(glob.glob(f"{curr_v_dir}/{sen_}/*.npy"))
+                n_npy_list = sorted(glob.glob(f"{curr_n_dir}/{sen_}/*.npy"))
                 
-                self.ict_real_wav_list[id_]=f"{self.ict_dir}/{id_}/wav/{sen_}.wav"
+                assert len(v_npy_list) == len(n_npy_list), f"{id_}-{sen_}"
                 
-                assert len(self.ict_real_v_npy_list[id_][sen_]) == len(self.ict_real_n_npy_list[id_][sen_]), f"{id_}-{sen_}"
+                self.ict_real_v_npy_list[id_][sen_]=v_npy_list
+                self.ict_real_n_npy_list[id_][sen_]=n_npy_list
+                
+                # self.ict_real_wav_list[id_]=f"{self.ict_dir}/{id_}/wav/{sen_}.wav" ## TODO
 
                 total_len += len(self.ict_real_v_npy_list[id_][sen_])
-            id_sent_len += len(self.ict_real_v_npy_list[id_])
+            #id_sent_len += len(self.ict_real_v_npy_list[id_])
             
-            assert len(self.ict_real_exp_coeff_list[id_]) == len(self.ict_real_v_npy_list[id_]), f"{id_}"
+            remain = len(v_listdirs) % self.opts.batch_size
+            if remain > 0:
+                dummy = self.opts.batch_size - remain
+            else:
+                dummy = 0
+            
+            n_id_sent = len(v_listdirs) + dummy
+            id_sent_len += n_id_sent # SEN len
+            self.ict_real_count.append(n_id_sent)
+            self.ict_real_remain.append(dummy)
+            
+            assert len(self.ict_real_exp_coeff_list[id_]) == len(self.ict_real_v_npy_list[id_]), \
+                f"exp_coeff and v mismatch in {id_}"
         
         #id_key = self.ict_data_split[self.mode][id_idx]
         self.ict_sent_key_list = list(self.ict_real_v_npy_list['m00'].keys())
         self.ict_sent_len = len(self.ict_real_v_npy_list['m00'].keys())
+        
+        self.ict_real_count=np.array(self.ict_real_count)
+        self.ict_real_count=np.cumsum(self.ict_real_count)
+        self.ict_real_remain=np.array(self.ict_real_remain)
         
         return total_len, id_sent_len
           
@@ -476,20 +498,44 @@ class MeshDataset(data.Dataset):
         self.ict_synth_n_npy_list = {}
         #self.ict_synth_len_list = {}
         
+        self.ict_synth_count = [0]
+        self.ict_synth_remain = [0]
+        
         total_len=0
-        id_sent_len=self.iden_vecs.shape[0] #*self.expression_vecs.shape[0]
+        #id_sent_len=self.iden_vecs.shape[0] #*self.expression_vecs.shape[0]
+        id_sent_len=0
+        
         for id_ in tqdm(self.ict_data_synth[self.mode], desc='ict synth'):
             
-            curr_v_dir=f"{self.ict_dir}/{id_}/vertices_npy"
-            curr_n_dir=f"{self.ict_dir}/{id_}/normals_npy"
+            curr_v_dir = f"{self.ict_dir}/{id_}/vertices_npy"
+            v_listdirs = sorted(glob.glob(f"{curr_v_dir}/*.npy"))
             
-            self.ict_synth_v_npy_list[id_]=sorted(glob.glob(f"{curr_v_dir}/*.npy"))
-            self.ict_synth_n_npy_list[id_]=sorted(glob.glob(f"{curr_n_dir}/*.npy"))
-
-            assert len(self.ict_synth_v_npy_list[id_]) == len(self.ict_synth_n_npy_list[id_]), f"{id_}"
+            curr_n_dir = f"{self.ict_dir}/{id_}/normals_npy"        
+            n_listdirs = sorted(glob.glob(f"{curr_n_dir}/*.npy"))
+            
+            assert len(v_listdirs) == len(n_listdirs), f"{id_}-{sen_}"
+            
+            self.ict_synth_v_npy_list[id_]=v_listdirs
+            self.ict_synth_n_npy_list[id_]=n_listdirs
 
             total_len += len(self.ict_synth_v_npy_list[id_])
-            #id_sent_len+=1
+            
+            # remain = len(v_listdirs) % self.opts.batch_size
+            remain = 1
+            if remain > 0:
+                dummy = self.opts.batch_size - remain
+            else:
+                dummy = 0
+            
+            n_id_sent = self.opts.batch_size # len(v_listdirs) + dummy
+            id_sent_len += n_id_sent # SEN len
+            self.ict_synth_count.append(n_id_sent)
+            self.ict_synth_remain.append(dummy)
+            
+        self.ict_synth_count=np.array(self.ict_synth_count)
+        self.ict_synth_count=np.cumsum(self.ict_synth_count)
+        self.ict_synth_remain=np.array(self.ict_synth_remain)
+            
         return total_len, id_sent_len
     
     def set_ict_synth_single(self):
@@ -523,8 +569,14 @@ class MeshDataset(data.Dataset):
         return total_len, id_sent_len
     
     def get_ICTcapture(self, index):
-        sent_idx = index % self.ict_sent_len
-        id_idx = index // self.ict_sent_len
+        # sent_idx = index % self.ict_sent_len
+        # id_idx = index // self.ict_sent_len
+        
+        id_idx = np.where(self.ict_real_count > index)[0][0] - 1
+        sent_idx = index - self.ict_real_count[id_idx]
+        o_index = self.ict_real_count[id_idx+1] - self.ict_real_count[id_idx] - self.ict_real_remain[id_idx+1]
+        if sent_idx >= o_index:
+            sent_idx = random.randint(0, o_index -1)
         
         id_key = self.ict_data_split[self.mode][id_idx]
         sent_key = self.ict_sent_key_list[sent_idx]
@@ -592,12 +644,18 @@ class MeshDataset(data.Dataset):
     def get_ICTsynthetic(self, index):
         #e_index = index % self.expression_vecs.shape[0]
         #id_idx = index // self.expression_vecs.shape[0]
+        # e_index = random.randint(0, self.expression_vecs.shape[0] -1)
 
-        id_idx = index
+        # id_idx = index
+        id_idx = np.where(self.ict_synth_count > index)[0][0] - 1
         e_index = random.randint(0, self.expression_vecs.shape[0] -1)
+        # e_index = index - self.ict_synth_count[id_idx]
+        # o_index = self.ict_synth_count[id_idx+1] - self.ict_synth_count[id_idx] - self.ict_synth_remain[id_idx+1]
+        # if e_index >= o_index:
+        #     e_index = random.randint(0, o_index -1)
         
         if self.use_ict_synth_single:
-            id_idx = 100
+            id_idx = 100 * self.opts.batch_size
             
         # get id_coeff
         id_coeff  = torch.from_numpy(self.iden_vecs[id_idx]) #-------------------- [100]
@@ -681,14 +739,16 @@ class MeshDataset(data.Dataset):
         # faces = self.mf_std['new_f']
         
         # get template dfn_info (neutral face)
-        dfn_info = pickle.load(open(os.path.join(
-            self.mf_precompute_path,
-            f"{id_name}_dfn_info.pkl"
-        ), 'rb'))
-        operators= os.path.join(
-            self.mf_precompute_path,
-            f"{id_name}_operators.pkl"
-        )
+        dfn_info = os.path.join(self.mf_precompute_path, f"{id_name}_dfn_info.pkl")
+        operators = os.path.join(self.mf_precompute_path, f"{id_name}_operators.pkl")
+        # dfn_info = pickle.load(open(os.path.join(
+        #     self.mf_precompute_path,
+        #     f"{id_name}_dfn_info.pkl"
+        # ), 'rb'))
+        # operators= os.path.join(
+        #     self.mf_precompute_path,
+        #     f"{id_name}_operators.pkl"
+        # )
         
         img = np.load(os.path.join(self.mf_precompute_path, f"{id_name}_img.npy"))
         img = torch.from_numpy(img)[0]
@@ -707,6 +767,10 @@ class MeshDataset(data.Dataset):
         v_normal = torch.from_numpy(v_normal).float()
         template = torch.from_numpy(template).float()
 
+        ## Random Augmentation ---------------------------------------------------
+        template, vertices = self.random_trans_scale(template, vertices)
+        ## -----------------------------------------------------------------------
+        
         # get exp_coeff  (no GT == zeros!)
         exp_coeff= torch.zeros(self.WS, 128).float()
         
@@ -714,7 +778,7 @@ class MeshDataset(data.Dataset):
         id_coeff = torch.zeros(128).float()
         
         dummy = torch.zeros(1)
-        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img, npy_file
+        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
     
     def get_multiface_ROM(self, index):
         """
@@ -745,14 +809,16 @@ class MeshDataset(data.Dataset):
         faces = self.mf_std['new_f']
 
         # get template dfn_info (neutral face)
-        dfn_info  = pickle.load(open(os.path.join(
-            self.mf_precompute_path, 
-            f"{id_name}_dfn_info.pkl"
-        ), 'rb'))
-        operators = os.path.join(
-            self.mf_precompute_path,
-            f"{id_name}_operators.pkl"
-        )
+        dfn_info = os.path.join(self.mf_precompute_path, f"{id_name}_dfn_info.pkl")
+        operators = os.path.join(self.mf_precompute_path, f"{id_name}_operators.pkl")
+        # dfn_info  = pickle.load(open(os.path.join(
+        #     self.mf_precompute_path, 
+        #     f"{id_name}_dfn_info.pkl"
+        # ), 'rb'))
+        # operators = os.path.join(
+        #     self.mf_precompute_path,
+        #     f"{id_name}_operators.pkl"
+        # )
         img = np.load(os.path.join(self.mf_precompute_path, f"{id_name}_img.npy"))
         img = torch.from_numpy(img)[0]
         
@@ -760,13 +826,17 @@ class MeshDataset(data.Dataset):
         v_normal = torch.from_numpy(v_normal).float()
         template = torch.from_numpy(template).float()
         
+        ## Random Augmentation ---------------------------------------------------
+        template, vertices = self.random_trans_scale(template, vertices)
+        ## -----------------------------------------------------------------------
+        
         # get id_coeff and exp_coeff (no GT == zeros!)
         id_coeff = torch.zeros(128)
         exp_coeff = torch.zeros(self.WS, 128)
         dummy = torch.zeros(1)
         
         # v_normal = calc_norm_torch(vertices, faces, at='v')
-        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img, npy_file    
+        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
     
     def random_rotation_matrix(self, randgen=None):
         """
@@ -835,7 +905,6 @@ class MeshDataset(data.Dataset):
                 break
             else:
                 idx = idx - id_sent_len
-        
         return (*datas, mesh_data)
     
     def get_slice_idx(self, F_idx, WS):
@@ -1480,12 +1549,131 @@ class NFSDataset(data.Dataset):
             save=True,
             name=f'{tag}-{mode}_{frame:03d}'
         )
+class InvRigDataset(data.Dataset):
+    def __init__(self, 
+                 opts,
+                 ict_basedir='/data/ICT-audio2face/split_set/', 
+                 voca_basedir="/data/VOCASET/original_set",
+                 biwi_basedir="/data/BIWI",
+                 mf_basedir="/data/multiface/audio2face",
+                 return_audio_dir=False,
+                 audio_feat_type: str ='wav2vec2',
+                 audio_feat_level: str = "05",
+                 is_train=False,
+                 is_valid=False,
+                 window_size=8, # batch size
+                 ict_face_only=True,
+                 device='cpu',
+                 print_config=False,
+                ):
+        super(InvRigDataset, self).__init__()
+        # get basenames
+        self.opts = opts
+        self.is_train = is_train
+        self.is_valid = is_valid
+        self.WS = self.opts.window_size if self.opts is not None else window_size
+        self.device = device
+        self.audio_feat_level = audio_feat_level
+        self.audio_feat_type = audio_feat_type
+        
+        self.ict_face_only = self.opts.ict_face_only if self.opts is not None else ict_face_only
+        
+        self.mode = 'test'
+        if is_train:
+            self.mode = 'train'
+        elif is_valid:
+            self.mode = 'val'
+            
+        ## precomputes --------------------------------------------------------------------
+        p_mode = 'face_only' if self.ict_face_only else 'fullhead'
+            
+        self.ict_data_split = {
+            'train': ['m00', 'm02', 'm04', 'm05', 'm06', 
+                      'w00', 'w01', 'w02', 'w05', 'w08'], # 00 ~ 60
+            'val':   ['m00', 'm02', 'm04', 'm05', 'm06',
+                      'w00', 'w01', 'w02', 'w05', 'w08'], # 60 ~ 65
+            'test':  ['m00', 'm02', 'm04', 'm05', 'm06',
+                      'w00', 'w01', 'w02', 'w05', 'w08'], # 66 ~ 72
+        }
+                
+        self.only_ict = False
+        ## ICT-facekit --------------------------------------------------------------------
+        self.ict_face_model = ICT_face_model(face_only=self.ict_face_only)
+        self.ict_templates_path = './ICT/templates'
+        
+        self.iden_vecs = np.load('./data/ICT_live_100/iden_vecs.npy')[:8]
+        self.expression_vecs = np.load(f'./data/ICT_live_100/expression_vecs_{self.mode}.npy')[:128]
+        self.ict_precompute_path = f'./ICT/precompute-{p_mode}'
+        self.ict_precompute_path_synth = f'./ICT/precompute-synth-{p_mode}'
+        
+        self.ict_basedir = os.path.join(ict_basedir,  self.mode)
+        self.ict_audio_wav = sorted(glob.glob(f'{self.ict_basedir}/*/wav/*.wav'))
+        
+        self.ict_vert_segment = torch.from_numpy(np.load('./mesh_utils/ict/ICT_segment_onehot.npy'))
+        #zzz = zzz.argmax(1)
+        ## --------------------------------------------------------------------------------
+        
+        ## --------------------------------------------------------------------------------
+        self.total_len = self.iden_vecs.shape[0] * self.expression_vecs.shape[0]
 
+        if print_config:
+            print(self.get_data_config())
+    
+    def get_data_config(self):
+        text = "========[ICT_InvRigDataset]========\n"
+        text += f"mode: {self.mode}\n"
+        text += f"id: {self.iden_vecs.shape[0]}\n"
+        text += f"exp: {self.expression_vecs.shape[0]}\n"
+        text += f"-----------------------\n"
+        text += f"[total data]: {self.total_len}\n"
+        text += "===============================\n"
+        return text
+    
+    def __len__(self):
+        return self.total_len
+        
+    def get_ICTsynthetic(self, index):
+        id_idx = index // self.expression_vecs.shape[0]
+        exp_idx = index % self.expression_vecs.shape[0]
+        
+        # get id_coeff
+        id_coeff  = torch.from_numpy(self.iden_vecs[id_idx]).float() # [100]
+        id_coeff  = torch.cat([id_coeff, torch.zeros(28)]) # --------------------------------------------- [128]
+        
+        exp_coeff = torch.from_numpy(self.expression_vecs).float()[None, exp_idx] # -------- [1, 53]
+        exp_coeff = torch.cat([exp_coeff, torch.zeros(1, 75)], dim=-1) # ---------------------------- [W, 128]
+        
+        id_disps  = torch.einsum('k,kls->ls', id_coeff[:100], self.ict_face_model.id_basis)[:self.ict_face_model.v_idx]
+        exp_disp  = torch.einsum('jk,kls->jls', exp_coeff[:, :53], self.ict_face_model.exp_basis)[:,:self.ict_face_model.v_idx]
+        
+        # get template vertices (neutral face)
+        template  = self.ict_face_model.neutral_verts + id_disps
+        faces     = self.ict_face_model.faces
+        
+        # get animation vertices using exp_coeff
+        vertices  = template + exp_disp
+        
+        # get template dfn_info (neutral face)
+        dfn_info  = pickle.load(open(os.path.join(self.ict_precompute_path_synth, f"{id_idx:03d}_dfn_info.pkl"), 'rb')) # list[ ... ]
+        operators = os.path.join(self.ict_precompute_path_synth, f"{id_idx:03d}_operators.pkl")
+        
+        img       = np.load(os.path.join(self.ict_precompute_path_synth, f"{id_idx:03d}_img.npy")) # ----- [1, 256, 256, 3]
+        img       = torch.from_numpy(img)[0]
+        
+        audio_feat= torch.zeros(self.WS, 768)
+        
+        return audio_feat, id_coeff, exp_coeff, template, dfn_info, operators, vertices, faces, img
+        
+        
+    def __getitem__(self, index):
+        return self.get_ICTsynthetic(index), torch.tensor(0)
+        
 class MeshSampler(data.Sampler):
-    def __init__(self, len_list, batch_size, shuffle=False, balance=False, n_sampling=False, n_=4):
+    def __init__(self, len_list, batch_size, shuffle=False, balance=False, n_sampling=False, n_=4,reverse=False):
         self.len_list = len_list
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.reverse = reverse
         self.balance = balance
         self.mode = np.array(['ict', 'voca', 'biwi', 'mf'])
         self.n_sampling = n_sampling
@@ -1502,11 +1690,11 @@ class MeshSampler(data.Sampler):
         """
         indices = np.zeros(0, dtype=int)
         labels = np.zeros(0, dtype=int) # for debugging
-        
+        SS = 0
         for len_data, _, mesh_data, id_len_list in self.len_list:
             
             m_data = mesh_data.numpy()
-            _indices = np.arange(0, id_len_list, dtype=int)
+            _indices = np.arange(SS, SS+id_len_list, dtype=int)
             
             if self.n_sampling:
                 _remain = id_len_list % (self.batch_size * self.n_)
@@ -1524,6 +1712,7 @@ class MeshSampler(data.Sampler):
             else:
                 indices = np.r_[indices, _indices]
                 labels = np.r_[labels, np.ones(id_len_list) * m_data]
+            SS = SS + id_len_list
         
         if self.n_sampling:
             indices = indices.reshape(-1, self.batch_size, self.n_).transpose(0, 2, 1).reshape(-1, self.batch_size)
@@ -1533,7 +1722,7 @@ class MeshSampler(data.Sampler):
             labels = labels.reshape(-1, self.batch_size)
         
         assert indices.shape[0] == labels.shape[0], "miss match!"
-        
+                
         return indices, labels
     
     def __iter__(self):
@@ -1558,6 +1747,10 @@ class MeshSampler(data.Sampler):
         else:
             indices = self.indices
             labels = self.labels
+            
+        if self.reverse:
+            indices = self.indices[::-1]
+            labels = self.labels[::-1]
             
         batch = indices.tolist()
         self.length = len(batch)
@@ -1736,13 +1929,14 @@ if __name__ == "__main__":
     # dataset = NFSDataset(opts, is_train=True, return_audio_dir=True)
     # print(dataset.get_data_config())
     
-    
     sampler = MeshSampler(
         dataset.len_list, 
         opts.batch_size,
-        shuffle=False,
+        #shuffle=True,
         balance=False,
         n_sampling=opts.n_sampling,
+        n_=8,
+        reverse=True,
     )
     print('n_sampling', opts.n_sampling)
     print(sampler.get_sampler_config())
@@ -1775,9 +1969,10 @@ if __name__ == "__main__":
     for idx, batch in pbar:
         #(audio_feat, id_coeff, gt_rig_params, template, dfn_info, operators, vertices, faces, img), mesh_data, audio_path = batch
         #print(audio_path[0], audio_feat.shape, id_coeff.shape, gt_rig_params.shape, template.shape, vertices.shape)
-        # mode = np.array(['ict', 'voca', 'biwi', 'mf'])[batch.mesh_data]
+        # import pdb;pdb.set_trace()
+        mode = np.array(['ict', 'voca', 'biwi', 'mf'])[batch.mesh_data]
         # print(idx, mode, batch.audio_feat.shape, batch.gt_rig_params.shape, batch.template.shape, batch.vertices.shape, batch.normals.shape)
-        pbar.set_description(f"{idx}")
+        pbar.set_description(f"{idx}-{mode}")
         # plot_image_array(
         #         v_list, f_list, 
         #         rot_list=[[0,0,0]] * len_v, 
@@ -1786,7 +1981,7 @@ if __name__ == "__main__":
         #         name=save_img_name, save=True
         #     )
         #print(template.min(), template.max())
-        dataset.vis_mesh(batch.vertices.cpu(), mesh='mf',tag=f"{idx:06d}")
+        dataset.vis_mesh(batch.vertices.cpu(), mesh=mode,tag=f"{idx:06d}")
         # dataset.vis_mesh(batch.template.cpu(), frame=1, mesh='ict')
         # dataset.vis_mesh(batch.vertices.cpu(), frame=0, mesh='ict')
         # dataset.vis_mesh(batch.vertices.cpu(), frame=1, mesh='ict')

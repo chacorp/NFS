@@ -139,7 +139,7 @@ class NFR_helper():
         
         import pickle
         ## dummy
-        dfn_info = pickle.load(open(f'{abs_path}/ICT/precompute-fullhead/m00_dfn_info.pkl', 'rb')) # list[ ... ]
+        dfn_info = pickle.load(open(f'{abs_path}/utils/m00_dfn_info.pkl', 'rb')) # list[ ... ]
         print(f"Loading... pretrained NFR")
         
         self.model = self.model_loading(None, dfn_info)
@@ -216,7 +216,7 @@ class NFR_helper():
         """
         lu_solver, idxs, vals, rhs = operators
         # calc center of model
-        cents = calc_cent(vertices, faces, mode='torch').float().unsqueeze(0) # [1, V, 3]
+        cents = calc_cent(vertices, faces, mode='torch').float() # [1, V, 3]
 
         # normals
         norms = calc_norm_torch(vertices[None], faces).float() # [1, V, 3]
