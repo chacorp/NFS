@@ -64,16 +64,13 @@ data_rand_trans: True
 data_cfg: 'Real_Synth' # 'Real', 'Synth', 'Real_Synth' 
 selection: 20 # ICT-all (ICT-capture + ICT-synthetic) + Multiface
 
-use_ict_real: True # checked
+use_ict_real: False # checked
 use_ict_synth: True # checked
-# use_ict_real: False
-# use_ict_synth: False
-# use_ict_synth_single: True
 use_ict_synth_single: False # checked
-use_mf_SEN: True # checked
+use_mf_SEN: False # checked
 use_mf_ROM: True # checked
 use_voca: False
-use_coma: False
+use_coma: True
 use_biwi: False
 
 style_emb: True

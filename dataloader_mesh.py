@@ -98,21 +98,21 @@ class MeshDataset(data.Dataset):
             self.total_len += total_len
             self.id_sent_len += id_sent_len
             self.len_list.append([self.total_len, self.get_ICTsynthetic, torch.tensor(0), id_sent_len])
+        if self.use_voca:
+            total_len, id_sent_len = self.set_voca()
+            self.total_len += total_len
+            self.id_sent_len += id_sent_len
+            self.len_list.append([self.total_len, self.get_voca, torch.tensor(1), id_sent_len])
+        if self.use_coma:
+            total_len, id_sent_len = self.set_coma()
+            self.total_len += total_len
+            self.id_sent_len += id_sent_len
+            self.len_list.append([self.total_len, self.get_coma, torch.tensor(1), id_sent_len])
         # if self.use_biwi:
         #     total_len, id_sent_len = self.set_biwi()
         #     self.total_len += total_len
         #     self.id_sent_len += id_sent_len
-        #     self.len_list.append([total_len, self.get_multiface_ROM, id_sent_len, torch.tensor(1)])
-        # if self.use_voca:
-        #     self.len_voca = self.set_voca()
-        #     self.total_len += total_len
-        #     self.id_sent_len += id_sent_len
-        #     self.len_list.append([total_len, self.get_multiface_ROM, id_sent_len, torch.tensor(2)])
-        # if self.use_coma:
-        #     self.len_coma = self.set_coma()
-        #     self.total_len += total_len
-        #     self.id_sent_len += id_sent_len
-            # self.len_list.append([total_len, self.get_multiface_ROM, id_sent_len, torch.tensor(2)])
+        #     self.len_list.append([self.total_len, self.get_biwi, torch.tensor(2), id_sent_len])
         if self.use_mf_SEN:
             total_len, id_sent_len = self.set_multiface_SEN()
             self.total_len += total_len
@@ -317,14 +317,20 @@ class MeshDataset(data.Dataset):
     
     def set_voca(self):
         self.all_dir = os.path.join(self.data_basedir, 'VOCA-COMA')
-        self.voca_precompute_path=f'{self.all_dir}/precomputes'
+        self.voca_dir = f'{self.all_dir}/VOCASET/{self.mode}'
+        self.voca_coma_precompute_path=f'{self.all_dir}/precomputes'
+        self.voca_coma_templates = pickle.load(open(f'{self.all_dir}/voca_templates.pkl', 'rb'), encoding='latin1')
         #dfn_info = pickle.load(open(self.mf_dir, 'rb'))
         
-        self.voca_dir = f'{self.all_dir}/VOCASET/{self.mode}'
+        self.voca_coma_std = np.load('./utils/voca/standardization.npy', allow_pickle=True).item()
+        
         self.voca_v_npy_list = {}
         self.voca_n_npy_list = {}
         self.voca_wav_list = {} # TODO
         #self.voca_len_list = {}
+        
+        self.voca_count = [0] # start
+        self.voca_remain = [0] # start
         
         total_len = 0
         id_sent_len = 0
@@ -346,19 +352,41 @@ class MeshDataset(data.Dataset):
                 
                 assert len(self.voca_v_npy_list[id_][sen_]) == len(self.voca_n_npy_list[id_][sen_])
                 
-                total_len+=len(self.voca_v_npy_list[id_])
-            id_sent_len+=len(v_listdirs)
+                total_len+=len(self.voca_v_npy_list[id_][sen_])
+                
+            remain = len(v_listdirs) % self.opts.batch_size
+            if remain > 0:
+                dummy = self.opts.batch_size - remain
+            else:
+                dummy = 0
+            
+            n_id_sent = len(v_listdirs) + dummy
+            id_sent_len += n_id_sent # SEN len
+            self.voca_count.append(n_id_sent)
+            self.voca_remain.append(dummy)
+            
+        self.voca_count=np.array(self.voca_count)
+        self.voca_count=np.cumsum(self.voca_count)
+        self.voca_remain=np.array(self.voca_remain)
+        
         return total_len, id_sent_len
     
     def set_coma(self):
         self.all_dir = os.path.join(self.data_basedir, 'VOCA-COMA')
-        self.coma_precompute_path=f'{self.all_dir}/precomputes'
+        self.coma_dir = f'{self.all_dir}/COMA/{self.mode}'
+        self.voca_coma_precompute_path=f'{self.all_dir}/precomputes'
+        self.voca_coma_templates = pickle.load(open(f'{self.all_dir}/voca_templates.pkl', 'rb'), encoding='latin1')
         #dfn_info = pickle.load(open(self.mf_dir, 'rb'))
+        
+        self.voca_coma_std = np.load('./utils/voca/standardization.npy', allow_pickle=True).item()
         
         self.coma_dir = f'{self.all_dir}/COMA/{self.mode}'
         self.coma_v_npy_list = {}
         self.coma_n_npy_list = {}
-        self.coma_len_list = {}
+        # self.coma_len_list = {}
+        
+        self.coma_count = [0] # start
+        self.coma_remain = [0] # start
         
         total_len=0
         id_sent_len=0
@@ -382,7 +410,22 @@ class MeshDataset(data.Dataset):
                 assert len(self.coma_v_npy_list[id_][sen_]) == len(self.coma_n_npy_list[id_][sen_])
                 
                 total_len+=len(self.coma_v_npy_list[id_][sen_])
-            id_sent_len+=len(v_listdirs)
+            
+            remain = len(v_listdirs) % self.opts.batch_size
+            if remain > 0:
+                dummy = self.opts.batch_size - remain
+            else:
+                dummy = 0
+            
+            n_id_sent = len(v_listdirs) + dummy
+            id_sent_len += n_id_sent # SEN len
+            self.coma_count.append(n_id_sent)
+            self.coma_remain.append(dummy)
+            
+        self.coma_count=np.array(self.coma_count)
+        self.coma_count=np.cumsum(self.coma_count)
+        self.coma_remain=np.array(self.coma_remain)
+        
         return total_len, id_sent_len
     
     def set_ict_base(self):
@@ -620,7 +663,7 @@ class MeshDataset(data.Dataset):
         faces = torch.from_numpy(faces).long()
         
         ## Random Augmentation ---------------------------------------------------
-        template, vertices = self.random_trans_scale(template, vertices)
+        # template, vertices = self.random_trans_scale(template, vertices)
         ## -----------------------------------------------------------------------
         
         # start_time = time.time()
@@ -681,7 +724,7 @@ class MeshDataset(data.Dataset):
         faces = torch.from_numpy(faces).long()
         
         ## Random Augmentation ---------------------------------------------------
-        template, vertices = self.random_trans_scale(template, vertices)
+        # template, vertices = self.random_trans_scale(template, vertices)
         ## -----------------------------------------------------------------------
         
         dfn_info = os.path.join(precompute_dir, f"{id_key}_dfn_info.pkl")
@@ -768,7 +811,7 @@ class MeshDataset(data.Dataset):
         template = torch.from_numpy(template).float()
 
         ## Random Augmentation ---------------------------------------------------
-        template, vertices = self.random_trans_scale(template, vertices)
+        # template, vertices = self.random_trans_scale(template, vertices)
         ## -----------------------------------------------------------------------
         
         # get exp_coeff  (no GT == zeros!)
@@ -827,7 +870,7 @@ class MeshDataset(data.Dataset):
         template = torch.from_numpy(template).float()
         
         ## Random Augmentation ---------------------------------------------------
-        template, vertices = self.random_trans_scale(template, vertices)
+        # template, vertices = self.random_trans_scale(template, vertices)
         ## -----------------------------------------------------------------------
         
         # get id_coeff and exp_coeff (no GT == zeros!)
@@ -838,6 +881,84 @@ class MeshDataset(data.Dataset):
         # v_normal = calc_norm_torch(vertices, faces, at='v')
         return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
     
+    def get_voca(self, index):
+        # import pdb;pdb.set_trace()
+        
+        id_idx = np.where(self.voca_count > index)[0][0] # num begins from 1
+        e_index = index - self.voca_count[id_idx-1]
+        o_index = self.voca_count[id_idx] - self.voca_count[id_idx-1] - self.voca_remain[id_idx]
+        if e_index >= o_index:
+            e_index = random.randint(0, o_index -1)
+            
+        id_name = self.voca_data_split[self.mode][id_idx-1] # num begins from 0
+        sent = list(self.voca_v_npy_list[id_name].keys())[e_index]
+        
+        frame_idx = random.randint(0, len(self.voca_v_npy_list[id_name][sent]) -1)
+        
+        # get template vertices (neutral face)
+        template = self.voca_coma_templates[id_name] # 3525, 3
+        vertices = np.load(self.voca_v_npy_list[id_name][sent][frame_idx]) # 3525, 3
+        v_normal = np.load(self.voca_n_npy_list[id_name][sent][frame_idx]) # 3525, 3
+        
+        faces = self.voca_coma_std['new_f'] ## removed eyeball
+        
+        # get template dfn_info (neutral face)
+        dfn_info  = os.path.join(self.voca_coma_precompute_path, f"{id_name}_dfn_info.pkl")
+        operators = os.path.join(self.voca_coma_precompute_path, f"{id_name}_operators.pkl")
+        
+        img = np.load(os.path.join(self.voca_coma_precompute_path, f"{id_name}_img.npy")) # ----------------- [1, 256, 256, 3]
+        img = torch.from_numpy(img)[0].float()
+                    
+        vertices = torch.from_numpy(vertices).float()
+        v_normal = torch.from_numpy(v_normal).float()
+        template = torch.from_numpy(template).float()
+        faces = torch.from_numpy(faces)
+
+        id_coeff = torch.zeros(128)
+        exp_coeff = torch.zeros(self.WS, 128)
+        dummy = torch.zeros(1)
+        
+        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
+        
+    def get_coma(self, index):
+        # import pdb;pdb.set_trace()
+        
+        id_idx = np.where(self.coma_count > index)[0][0] # num begins from 1
+        e_index = index - self.coma_count[id_idx-1]
+        o_index = self.coma_count[id_idx] - self.coma_count[id_idx-1] - self.coma_remain[id_idx]
+        if e_index >= o_index:
+            e_index = random.randint(0, o_index -1)
+            
+        id_name = self.voca_data_split[self.mode][id_idx-1] # num begins from 0
+        sent = list(self.coma_v_npy_list[id_name].keys())[e_index]
+        
+        frame_idx = random.randint(0, len(self.coma_v_npy_list[id_name][sent]) -1)
+        
+        # get template vertices (neutral face)
+        template = self.voca_coma_templates[id_name] # 3525, 3
+        vertices = np.load(self.coma_v_npy_list[id_name][sent][frame_idx]) # 3525, 3
+        v_normal = np.load(self.coma_n_npy_list[id_name][sent][frame_idx]) # 3525, 3
+        
+        faces = self.voca_coma_std['new_f'] ## removed eyeball
+        
+        # get template dfn_info (neutral face)
+        dfn_info  = os.path.join(self.voca_coma_precompute_path, f"{id_name}_dfn_info.pkl")
+        operators = os.path.join(self.voca_coma_precompute_path, f"{id_name}_operators.pkl")
+        
+        img = np.load(os.path.join(self.voca_coma_precompute_path, f"{id_name}_img.npy")) # ----------------- [1, 256, 256, 3]
+        img = torch.from_numpy(img)[0].float()
+                    
+        vertices = torch.from_numpy(vertices).float()
+        v_normal = torch.from_numpy(v_normal).float()
+        template = torch.from_numpy(template).float()
+        faces = torch.from_numpy(faces)
+
+        id_coeff = torch.zeros(128)
+        exp_coeff = torch.zeros(self.WS, 128)
+        dummy = torch.zeros(1)
+        
+        return dummy, id_coeff, exp_coeff, template, dfn_info, operators, vertices, v_normal, faces, img
+        
     def random_rotation_matrix(self, randgen=None):
         """
         Borrowed from https://github.com/nmwsharp/diffusion-net/blob/master/src/diffusion_net/utils.py
@@ -931,7 +1052,7 @@ class MeshDataset(data.Dataset):
             return self.identity_num[audio_path.split(self.mode)[-1].split('/')[1]]
         
         # elif self.use_voca and template.shape[0] == self.voca_trimesh.vertices.shape[0]:        
-        elif self.use_voca and template.shape[0] == self.voca_std['v_idx'].shape[0]:
+        elif self.use_voca and template.shape[0] == self.voca_coma_std['v_idx'].shape[0]:
             return self.identity_num[audio_path.split(self.mode)[-1].split('/')[1]]
         
         elif self.use_biwi and template.shape[0] == self.biwi_trimesh.vertices.shape[0]:
@@ -951,14 +1072,15 @@ class MeshDataset(data.Dataset):
                  tag='', 
                  bg_black=False,
                  size=3,
-                 render_mode='shade'
+                 render_mode='shade',
+                 logdir='_tmp',
                 ):
         if faces is None:
             if mesh == 'ict':
                 faces = self.ict_face_model.faces
             elif mesh == 'voca':
                 #faces = self.voca_trimesh.faces
-                faces = self.voca_std['new_f']
+                faces = self.voca_coma_std['new_f']
             elif mesh == 'biwi':
                 faces = self.biwi_trimesh.faces
             elif mesh == 'mf':
@@ -971,16 +1093,18 @@ class MeshDataset(data.Dataset):
         v_list  = vertices
         len_v = len(v_list)
         f_list  = [faces]*len_v
+        
+        os.makedirs(logdir, exist_ok=True)
+        
         plot_image_array(
             v_list, f_list, rot_list*len_v, 
             size=size,
             mode=render_mode,
             bg_black=bg_black, 
-            logdir='_tmp',
+            logdir=logdir,
             save=True,
             name=f'{tag}-{mesh}'
         )
-
 
 # deprecated
 class NFSDataset(data.Dataset):
@@ -1549,6 +1673,7 @@ class NFSDataset(data.Dataset):
             save=True,
             name=f'{tag}-{mode}_{frame:03d}'
         )
+
 class InvRigDataset(data.Dataset):
     def __init__(self, 
                  opts,
@@ -1695,23 +1820,24 @@ class MeshSampler(data.Sampler):
             
             m_data = mesh_data.numpy()
             _indices = np.arange(SS, SS+id_len_list, dtype=int)
+            id_len_list_tmp = id_len_list
+            
+            if m_data == 1: # voca or coma
+                tile_n = 10
+                _indices = np.tile(_indices, tile_n)
+                id_len_list_tmp = id_len_list_tmp * tile_n
             
             if self.n_sampling:
-                _remain = id_len_list % (self.batch_size * self.n_)
+                _remain = id_len_list_tmp % (self.batch_size * self.n_)
             else:
-                _remain = id_len_list % self.batch_size
+                _remain = id_len_list_tmp % self.batch_size
                 
             if _remain > 0:
-                # _padd_num = self.batch_size - _remain
-                # _padded_indices = np.r_[_indices[id_len_list-_remain:], _indices[0:_padd_num]]
-                
-                # indices = np.r_[indices, _indices[0:id_len_list-_remain], _padded_indices]
-                # labels = np.r_[labels, np.ones(id_len_list-_remain+self.batch_size) * m_data]
                 indices = np.r_[indices, _indices[0:-_remain]]
-                labels = np.r_[labels, np.ones(id_len_list-_remain) * m_data]
+                labels = np.r_[labels, np.ones(id_len_list_tmp-_remain) * m_data]
             else:
                 indices = np.r_[indices, _indices]
-                labels = np.r_[labels, np.ones(id_len_list) * m_data]
+                labels = np.r_[labels, np.ones(id_len_list_tmp) * m_data]
             SS = SS + id_len_list
         
         if self.n_sampling:
