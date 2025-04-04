@@ -10,6 +10,7 @@ from scipy.spatial import cKDTree
 from matplotlib_rnd import *
 
 import trimesh
+import random
 
 def load_obj_mesh(obj_file):
     """
@@ -466,6 +467,7 @@ class ICT_face_model():
         self.device = device
         self.scale  = scale
         base_dir = abs_path if base_dir==None else base_dir
+        self.base_dir = base_dir
         
         # get vertices and faces
         ## default: full = face + head + neck
@@ -501,6 +503,39 @@ class ICT_face_model():
         #self.neutral_verts = self.neutral_verts.to(self.device)
         self.exp_basis= self.exp_basis.numpy()
         self.id_basis = self.id_basis.numpy()
+    
+    def get_region_num(self, vertices):
+        """
+        Args:
+            vertices: batched vertices or vertices [B, V, 3] or [V, 3]
+        """
+        N = vertices.shape[-2]
+        
+        if N == 11248:
+            return 0
+        elif N == 9409:
+            return 1
+        else:
+            return 2
+        
+    def get_random_v_and_f(self, select=None, mode='np'):
+        """
+        Returns:
+            tuple(int, np.ndarray)
+        """
+        if select is None:
+            select = random.randint(0, 2)
+        
+        # 0: face to shoulder | 1: face to neck | 2. narrow face
+        v_idx, quad_f_idx = self.region[select]
+        
+        qf_pth = f'{self.base_dir}/ict_face_pt/quad_faces.pt'
+        quad_Faces = torch.load(qf_pth)[:quad_f_idx]
+        tri_faces = quad_Faces[:, [[0, 1, 2],[0, 2, 3]] ].permute(1, 0, 2).reshape(-1, 3)
+        
+        tri_faces = tri_faces.numpy() if mode == 'np' else tri_faces
+            
+        return v_idx, tri_faces
 
     def get_mesh(self, mesh_std=False, return_idx=False):
         """
@@ -610,6 +645,7 @@ class ICT_face_model():
         
         # id vertices
         #id_disps = self.get_id_disp(id_coeff)
+        neutral_verts = self.neutral_verts[:self.region[region][0]]
         
         B = id_coeff.shape[0]
         id_basis_reshaped = torch.from_numpy(self.id_basis.reshape(100, -1)).float().to(device)
@@ -623,7 +659,7 @@ class ICT_face_model():
         exp_disps = torch.mm(exp_coeffs, exp_basis_reshaped).reshape(T, -1, 3)
         exp_disps = exp_disps[:, :self.region[region][0]]
             
-        id_verts = torch.from_numpy(self.neutral_verts[:, :self.region[region][0]]).float().to(device) + id_disps
+        id_verts = torch.from_numpy(neutral_verts).float().to(device) + id_disps
         id_exp_verts = id_verts + exp_disps
         
         if self.use_decimate:

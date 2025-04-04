@@ -5,9 +5,14 @@ from pathlib import Path
 abs_path = str(Path(__file__).parents[1].absolute())
 sys.path+=[abs_path]
 
+from tqdm import tqdm
 from utils import nfr_utils
 from utils.mesh_utils import *
+from utils.remesh_utils import map_vertices, decimate_mesh_vertex
 import trimesh
+
+# from .matplotlib_rnd import *
+import glob
 
 def load_mesh(mesh, renderer, device='cuda', process=True):
     if process:
@@ -37,20 +42,36 @@ def Options():
     return args
 
 if __name__ == "__main__":
-    from tqdm import tqdm
-    from .matplotlib_rnd import *
-    from utils.remesh_utils import map_vertices, decimate_mesh_vertex
+    """
+    python data_prepare.py -i path_to_obj -o output_dir
+    python utils/data_prepare.py -i /data/sihun/multiface_align/obj -o /data/sihun/multiface_align/precomputes
+    python utils/data_prepare.py -i /data/sihun/ICT-audio2face/precompute-synth-narrow_face -o /data/sihun/ICT-audio2face/precompute-synth-narrow_face
+    """
 
     args = Options()
 
     renderer = Renderer(view_d=2.5, img_size=256, fragments=True)
 
-    src_mesh_list = glob(os.path.join(args.in_dir,"*.obj"))
-        
+    src_mesh_list = glob.glob(os.path.join(args.in_dir,"*.obj"))
+    
+    os.makedirs(args.out_dir, exist_ok=True)
+    
     for src_mesh_file in tqdm(src_mesh_list):
-        src_name = src_mesh_file.split("/")[-1].replace("*.obj", "")
+        dfn_info_filename = f'{args.out_dir}/{src_name}_dfn_info.pkl'
+        operators_filename = f'{args.out_dir}/{src_name}_operators.pkl'
+        img_filename = f'{args.out_dir}/{src_name}_img.npy'
+        
+        if os.path.isfile(dfn_info_filename):
+            continue
+        if os.path.isfile(operators_filename):
+            continue
+        if os.path.isfile(img_filename):
+            continue
+        
+        src_name = src_mesh_file.split("/")[-1].replace(".obj", "")
+        src_name = src_name.replace("_mesh", "")
             
-        src_mesh = trimesh.load(src_mesh_file, maintain_order=True,process=False)
+        src_mesh = trimesh.load(src_mesh_file, maintain_order=True, process=False)
         if args.decimate:
             deci_mesh = decimate_mesh_vertex(src_mesh, num_vertex=4096, tolerance=0)
             _, v_map = map_vertices(src_mesh, deci_mesh)
@@ -75,12 +96,12 @@ if __name__ == "__main__":
         # f_list=[ src_mesh.faces ]
         # plot_image_array(v_list, f_list, rot_list=[[0,0,0]]*len(v_list), size=2, bg_black=False, mode='shade')
         
-        with open(f'{args.out_dir}/{src_name}_dfn_info.pkl', mode='wb') as f:
+        with open(dfn_info_filename, mode='wb') as f:
             pickle.dump(src_mesh_dfn_info, f)
-        with open(f'{args.out_dir}/{src_name}_operators.pkl', mode='wb') as f:
+        with open(operators_filename, mode='wb') as f:
             pickle.dump(src_mesh_operators, f)
-        np.save(f'{args.out_dir}/{src_name}_img.npy', src_img)
-        _ = src_mesh.export(f'{args.out_dir}/{src_name}_mesh.obj')
+        np.save(img_filename, src_img)
+        #_ = src_mesh.export(f'{args.out_dir}/{src_name}_mesh.obj')
 
     # save_mesh_list = glob(os.path.join(args.out_dir,"*_mesh.obj"))
     # assert len(src_mesh_list) == len(save_mesh_list), "mismatch between given mesh list and saved mesh list!"
