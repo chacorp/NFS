@@ -199,6 +199,7 @@ class NFS(nn.Module):
         self.ict_basedir = ict_basedir
         self.ict_precompute = f'{self.ict_basedir}/precompute-synth-fullhead'
         self.ict_precompute_fo = f'{self.ict_basedir}/precompute-synth-face_only'
+        self.ict_precompute_nf = f'{self.ict_basedir}/precompute-synth-narrow_face'
         
         if self.use_decimate:
             v_idx = torch.from_numpy(self.ict_face_model.ict_deci["v_idx"])
@@ -220,6 +221,12 @@ class NFS(nn.Module):
             neu_operators = os.path.join(self.ict_precompute_fo, f"100_operators.pkl")
             self.neu_fo_operators = pickle.load(open(neu_operators, mode='rb'))
             self.neu_fo_img = torch.from_numpy(np.load(os.path.join(self.ict_precompute_fo, f"100_img.npy"))).to(self.device).float()
+            
+            self.neu_nf_dfn_info  = pickle.load(open(os.path.join(self.ict_precompute_nf, f"100_dfn_info.pkl"), 'rb'))
+            neu_operators = os.path.join(self.ict_precompute_nf, f"100_operators.pkl")
+            self.neu_nf_operators = pickle.load(open(neu_operators, mode='rb'))
+            self.neu_nf_img = torch.from_numpy(np.load(os.path.join(self.ict_precompute_nf, f"100_img.npy"))).to(self.device).float()
+            
         self.local_feat_ict=None
             
     def get_mesh_decoder_parameters(self):
@@ -411,23 +418,41 @@ class NFS(nn.Module):
         seg_code = self.mesh_seg_encoder(vert_feat) # [1, ID]
         return seg_code
     
-    def get_inputs_ict(self, pred_exp_coeff):
+    def get_inputs_ict(self, pred_exp_coeff, region=0, v_num=None, faces_ict=None):
         """get decoder input from ict neutral face mesh
         Args:
             pred_exp_coeff (torch.tensor): not used in the process
+            region (int): label for ict face region [0: face to shoulder, 1: face to neck, 2: narrow face]
         
         Returns:
             inputs_ict (tuple): inputs for decoder
         """
-        img_feat_ict = self.get_img_feat(self.neu_img).unsqueeze(1) # [B, 1, 128]
-        template_ict = self.ict_neutral[None]
-        operators_ict = self.neu_operators
-        faces_ict = self.ict_faces
-        dfn_info_ict = self.neu_dfn_info
+        
+        if v_num is None or faces_ict is None:
+            v_num, faces_ict = self.ict_face_model.get_random_v_and_f(region)
+        
+        faces_ict = faces_ict.to(self.device)
+        template_ict = self.ict_neutral[None,:v_num]
+        
+        if region == 0:
+            neu_img = self.neu_img
+            operators_ict = self.neu_operators
+            dfn_info_ict = self.neu_dfn_info
+        elif region == 1:
+            neu_img = self.neu_fo_img
+            operators_ict = self.neu_fo_operators
+            dfn_info_ict = self.neu_fo_dfn_info
+        else:
+            neu_img = self.neu_nf_img
+            operators_ict = self.neu_nf_operators
+            dfn_info_ict = self.neu_nf_dfn_info
+            
+        img_feat_ict = self.get_img_feat(neu_img).unsqueeze(1) # [B, 1, 128]
         
         local_feat_ict = self.get_local_feature(template_ict, faces_ict, img_feat_ict)
         B = pred_exp_coeff.shape[0]
         pred_id_coeff_ict = self.encode_id(local_feat_ict, dfn_info_ict).repeat(B,1)# [1, ID]
+        
         if 'new2' in self.design:
             pred_seg_coeff_ict = self.encode_seg(local_feat_ict, dfn_info_ict)# [1, V, Seg]
         else:
@@ -435,6 +460,7 @@ class NFS(nn.Module):
         
         if self.opts.dec_type=='jacob':
             local_feat_ict = self.get_local_feature(template_ict, faces_ict, img_feat_ict, at='faces')
+            
         return (
             local_feat_ict.repeat(B, 1, 1), 
             pred_exp_coeff, 
@@ -799,23 +825,30 @@ class NFS(nn.Module):
             loss["vert_rIEnc"] = self.criterion(gt_id_coeff, pred_id_coeff)
             loss["vert_rEEnc"] = self.criterion(gt_rig_params, pred_exp_coeff)
             
-            if template.shape[1] > 9409:
-                ict_model = self.ict_face_model # full_head
-                ict_seg = self.ict_vert_segment
-            else:
-                ict_model = self.ict_face_model_fo # face_only
-                ict_seg = self.ict_vert_segment_fo
+            region_num = self.ict_face_model.get_region_num(gt_vertices)
+            v_num, faces = self.ict_face_model.get_random_v_and_f(region_num, mode='torch')
+            ict_seg = self.ict_vert_segment[:v_num]
+            
+            # if template.shape[1] > 9409:
+            #     ict_model = self.ict_face_model # full_head
+            #     ict_seg = self.ict_vert_segment
+            # else:
+            #     ict_model = self.ict_face_model_fo # face_only
+            #     ict_seg = self.ict_vert_segment_fo
                 
             if not self.opts.no_BP:
-                pred_ICT_recon = ict_model.apply_coeffs_batch_torch(pred_id_coeff[:, :100], pred_exp_coeff[:, :53])
-                loss["vert_vICT"] = self.criterion(gt_vertices, pred_ICT_recon)
+                pred_ICT_recon = self.ict_face_model.apply_coeffs_batch_torch(pred_id_coeff[:, :100], pred_exp_coeff[:, :53], region=region_num)
+                try:
+                    loss["vert_vICT"] = self.criterion(gt_vertices, pred_ICT_recon)
+                except:
+                    import pdb;pdb.set_trace()
         
             if not self.opts.no_BR:
                 with torch.no_grad(): ## no need to pass it to encoders
-                    inputs_ict = self.get_inputs_ict(pred_exp_coeff.detach())
-                    gt_recon_ICT = ict_model.apply_coeffs_batch_torch(inputs_ict[2][:, :100], pred_exp_coeff[:, :53].detach())
+                    inputs_ict = self.get_inputs_ict(pred_exp_coeff.detach(), region=region_num, v_num=v_num, faces_ict=faces)
+                    gt_recon_ICT = self.ict_face_model.apply_coeffs_batch_torch(inputs_ict[2][:, :100], pred_exp_coeff[:, :53].detach(), region=region_num)
                 pred_outputs_ict, _ = self.decode_grad(inputs_ict)
-                loss["vert_vICT"] = self.criterion(gt_recon_ICT, pred_outputs_ict[:,:ict_model.v_num])
+                loss["vert_vICT"] = self.criterion(gt_recon_ICT, pred_outputs_ict)
 
             if 'new2' in self.design:
                 pred_seg_log = F.log_softmax(pred_seg_coeff, dim=-1) ## [V, Seg]
@@ -1048,7 +1081,7 @@ class NFS(nn.Module):
         tgt_id_disps = torch.einsum('k,kls->ls', tgt_coeff, self.ict_face_model.id_basis)[:self.ict_face_model.v_num]
         tgt_exp_disp = torch.einsum('jk,kls->jls', tgt_gt_rig, self.ict_face_model.exp_basis)[:,:self.ict_face_model.v_num]
         
-        tgt_template  = self.ict_neutral.to(self.device) + tgt_id_disps # neutral face
+        tgt_template = self.ict_neutral.to(self.device) + tgt_id_disps # neutral face
         tgt_gt_vertices = tgt_template + tgt_exp_disp # facial expressions
         
         # send to device
@@ -1117,7 +1150,8 @@ class NFS(nn.Module):
                      tgt_mesh, 
                      batch_process=False, 
                      return_all=False,
-                     return_exp=False, 
+                     return_exp=False,
+                     return_seg=False, 
                      use_filter=False,
                      use_scale=False,
                      scale_mask=torch.ones(53)*2.0,
@@ -1169,9 +1203,10 @@ class NFS(nn.Module):
         ## Decode ----------------------------------------------------------------------
         tgt_verts = torch.from_numpy(tgt_mesh.vertices)[None].to(self.device)
         tgt_faces = torch.from_numpy(tgt_mesh.faces).to(self.device)
-        tgt_operators = self.get_mesh_operators(tgt_mesh)
+        tgt_operators = None
         
         if self.opts.dec_type=='jacob':
+            tgt_operators = self.get_mesh_operators(tgt_mesh)
             tgt_img = self.renderer.render_img(tgt_mesh).float().to(self.device)
             tgt_img_feat = self.get_img_feat(tgt_img).unsqueeze(1) #------------------- [1, 1, 128]
             faces_feat = self.get_local_feature(tgt_verts, tgt_faces, tgt_img_feat, at='faces')
@@ -1179,7 +1214,7 @@ class NFS(nn.Module):
         else:
             local_feat = vert_feat # [1, V, 3+3+128]
 
-        style_emb = None
+        style_emb = None # depricated 
         inputs = (local_feat, pred_exp_coeff, pred_id_coeff, pred_seg_coeff, style_emb, tgt_verts, tgt_faces, tgt_operators)
             
         with torch.no_grad():
@@ -1196,4 +1231,6 @@ class NFS(nn.Module):
             return pred_outputs, (vert_feat, pred_exp_coeff, pred_id_coeff, pred_seg_coeff, style_emb, tgt_verts, tgt_faces, tgt_operators)
         if return_exp:
             return pred_outputs, pred_exp_coeff
+        if return_seg:
+            return pred_outputs, pred_seg_coeff
         return pred_outputs

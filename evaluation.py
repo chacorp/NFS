@@ -475,7 +475,7 @@ class NFR_helper():
         return loss, pred_outputs, None, pred_exp, pred_id, None
 
 class Trainer():
-    def __init__(self, opts):
+    def __init__(self, opts, num='best'):
         # set opts
         self.opts = opts
 
@@ -489,14 +489,14 @@ class Trainer():
             self.model = NFS(self.opts, None, print_param=True).to(self.device)
 
             # load weight
-            self.load_weight()
+            self.load_weight(num)
             
         self.criterion = nn.MSELoss()
         self.model.criterion = self.criterion
     
-    def load_weight(self):
+    def load_weight(self, num):
         if self.opts.ckpt:
-            ckpt = glob.glob(os.path.join(self.opts.ckpt, "*_best.pth"))[0]
+            ckpt = glob.glob(os.path.join(self.opts.ckpt, f"*_{num}.pth"))[0]
             print(f"Loading... {ckpt}")
             ckpt_dict = torch.load(ckpt)
             
