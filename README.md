@@ -10,7 +10,10 @@ This is official implementation of the paper 'Neural Face Skinning for Mesh-agno
 - [x] Installation
 - [x] Inference
 - [x] Train code
+- [ ] Clean up utils
 - [ ] Dataloader for custom data
+    - [x] preparation code `utils/data_prepare.py`
+    - [ ] custom data loader
 - [ ] Evaluation
 - [ ] Pretrained model
 
@@ -23,14 +26,14 @@ This is official implementation of the paper 'Neural Face Skinning for Mesh-agno
 Use docker image as below
 
 ```bash
-docker pull chacorp/audio2face:1.0 # cuda 11.8
-docker pull chacorp/diff3f:latest # cuda 12.1
+docker pull chacorp/audio2face:1.0 # if cuda 11.8
+#docker pull chacorp/diff3f:latest # if cuda 12.1 [WIP]
 ```
 
 All dependencies for the environment are provided in `requirements.txt`.
 ```bash
 bash setup.sh -m 1 # if cuda 11.8
-# bash setup.sh -m 2 # if cuda 12.1
+# bash setup.sh -m 2 # if cuda 12.1 [WIP]
 ```
 <!-- ```bash
 pip install -r requirements.txt
@@ -104,6 +107,7 @@ TBD ...
 ## 3. Inference
 We provide a jupyter notebook for the inference. `notebook/NFS_inference.ipynb`. \
 We also provide a jupyter notebook for NFR inference. `notebook/NFR_inference.ipynb`
+NOTE: requres pretrained model... will be uploaded soon... !
 
 ## 4. Training
 After the data preparation, you can train your own model by using bash file `train.sh` as below:
