@@ -1,0 +1,91 @@
+# Test args
+
+device: 'cuda:0'
+seed: 1234
+use_decimate: False
+use_scheduler: False
+id_num: -1
+n_sampling: False
+
+# model config
+model_type: 'conv'
+audio_type: 'wav2vec2'
+feat_level: '05'
+
+feature_type: 'cents&norms'
+#feature_type: 'cents&norms&seg'
+
+input_dim: 768 # (not used)
+feat_dim: 128 # (not used)
+rig_dim: 128 # 'rig (expression code) dim'
+id_dim: 128 # 'identity code dim'
+seg_dim: 20 # face segmentation dim
+ltn_dim: 128 # dim for mesh autoencoder latent
+img_feat_dim: 128 # dim for image feature
+
+# optimizer
+lr : 0.0001
+max_epoch: 500
+start_epoch: 0
+
+# scheduler
+sc_step: 100
+sc_gamma: 0.75
+
+# loss
+lambda_vert: 10.0
+lambda_normal: 1.0
+lambda_jacob: 1.0
+
+lambda_bs: 1.0
+lambda_seg: 1.0
+lambda_enc: 1.0
+lambda_temp: 0.0
+
+no_BR: False
+no_BP: False
+
+fps: 30
+window_size: 1
+batch_size: 1
+
+# Data directory
+data_dir: "/data/ICT-audio2face/split_set"
+log_dir: "./ckpts"
+
+ckpt: ''
+
+is_train: True
+tb: True
+ict_face_only: False
+
+data_rand_scale: False
+data_rand_trans: True
+data_cfg: 'Real_Synth' # 'Real', 'Synth', 'Real_Synth' 
+selection: 20 # ICT-all (ICT-capture + ICT-synthetic) + Multiface
+
+use_ict_real: False # checked
+use_ict_synth: True # checked
+use_ict_synth_single: False # checked
+use_mf_SEN: False # checked
+use_mf_ROM: True # checked
+use_voca: False
+use_coma: True
+use_biwi: False
+
+style_emb: True
+recon_type: 'baseline' # "baseline, distill, hybrid"
+dec_type: 'disp' # vert, disp, jacob, Rs
+data_aug: False
+
+# decoder_out_shape: 9 # jacob
+decoder_out_shape: 3 # disp
+
+debug: False
+std_file: ./data/ICT_live_100
+
+stage1: True
+
+design: 'new2'
+warmup: True
+continue_ckpt: False

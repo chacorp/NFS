@@ -1,0 +1,11 @@
+cupy==13.4.0
+libigl==2.5.1
+open3d==0.19.0
+openmesh==1.2.1
+k3d==2.16.1
+PyOpenGL==3.1.0
+pyrender==0.1.45
+transforms3d==0.4.2
+easydict==1.13
+tensorboard==2.19.0
+# pip install torch_cluster -f https://data.pyg.org/whl/torch-2.1.0+cu121.html --no-cache-dir
