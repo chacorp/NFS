@@ -16,24 +16,29 @@ This is official implementation of the paper 'Neural Face Skinning for Mesh-agno
     - [ ] custom data loader
 - [ ] Evaluation
 - [ ] Pretrained model
+    - [x] trained on ICT & Multiface (no data augmentation)
+    - [ ] trained on ICT & Multiface (with data augmentation)
+
 
 
 ## 1. Installation
 ### Environment
-- System requirement: Ubuntu 20.04/Ubuntu 22.04, Cuda 11.8 | Cuda 12.1
+- System requirement:
+    - [x] Ubuntu 20.04, Cuda 11.8
+    - [ ] Ubuntu 22.04, Cuda 12.1 (working in progress)
 - Tested GPU: NVIDIA-RTX-A5000
 
 Use docker image as below
 
 ```bash
 docker pull chacorp/audio2face:1.0 # if cuda 11.8
-#docker pull chacorp/diff3f:latest # if cuda 12.1 [WIP]
+#docker pull chacorp/diff3f:latest # if cuda 12.1 (working in progress)
 ```
 
 All dependencies for the environment are provided in `requirements.txt`.
 ```bash
 bash setup.sh -m 1 # if cuda 11.8
-# bash setup.sh -m 2 # if cuda 12.1 [WIP]
+# bash setup.sh -m 2 # if cuda 12.1 (working in progress)
 ```
 <!-- ```bash
 pip install -r requirements.txt
@@ -47,10 +52,14 @@ Place them in the root directory of this repo.
 - [NFR files](https://drive.google.com/file/d/1cXXeU3AtpoGEVz2mhlWTSG1dEbAtCmD1/view?usp=sharing). \
 Place them in the root directory of this repo.
 
+### Pretrained model
+- model trained on ICT and Multiface [checkpoint](https://drive.google.com/drive/folders/16F5JH6b4-pQuxqImYpmDvnbUy8iigPsE?usp=sharing)
+Place the folder in the root directory of this repo.
+
 ```text
 NFS/
   ├─ assets/
-  ├─ ...
+  ├─ ckpts/           # checkpoint folder
   │
   ├─ ict_face_pt/     # ICT files
   │  ├─ exp_basis.pt
@@ -68,8 +77,6 @@ NFS/
      └─ mesh_signatures
 ```
 
-### Pretrained model
-TBD ...
 
 
 ## 2. Data preparation
