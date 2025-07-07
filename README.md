@@ -53,7 +53,7 @@ Place them in the root directory of this repo.
 Place them in the root directory of this repo.
 
 ### Pretrained model
-- [checkpoint](https://drive.google.com/drive/folders/16F5JH6b4-pQuxqImYpmDvnbUy8iigPsE?usp=sharing): model trained on ICT and Multiface \
+- [checkpoint](https://drive.google.com/drive/folders/15uI8WPD0KW9SebOchfBcJeWgD3WZRhu2?usp=sharing): model trained on ICT and Multiface \
 Place the folder in the root directory of this repo.
 
 ```text
