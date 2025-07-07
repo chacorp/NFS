@@ -47,13 +47,13 @@ pip install -r requirements.txt
 
 ### Downloads
 Download the following files from the link and place them in the root directory of this repo.
-- [ICT files](https://drive.google.com/file/d/1NeSJyVgybzZS-p6uHafv6e3Tv8jTxbCy/view?usp=sharing). \
+- [ICT files](https://drive.google.com/file/d/1NeSJyVgybzZS-p6uHafv6e3Tv8jTxbCy/view?usp=sharing) \
 Place them in the root directory of this repo.
-- [NFR files](https://drive.google.com/file/d/1cXXeU3AtpoGEVz2mhlWTSG1dEbAtCmD1/view?usp=sharing). \
+- [NFR files](https://drive.google.com/file/d/1cXXeU3AtpoGEVz2mhlWTSG1dEbAtCmD1/view?usp=sharing) \
 Place them in the root directory of this repo.
 
 ### Pretrained model
-- model trained on ICT and Multiface [checkpoint](https://drive.google.com/drive/folders/16F5JH6b4-pQuxqImYpmDvnbUy8iigPsE?usp=sharing)
+- [checkpoint](https://drive.google.com/drive/folders/16F5JH6b4-pQuxqImYpmDvnbUy8iigPsE?usp=sharing): model trained on ICT and Multiface \
 Place the folder in the root directory of this repo.
 
 ```text
