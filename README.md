@@ -112,9 +112,10 @@ TBD ...
 
 
 ## 3. Inference
-We provide a jupyter notebook for the inference. `notebook/NFS_inference.ipynb`. \
-We also provide a jupyter notebook for NFR inference. `notebook/NFR_inference.ipynb`
-NOTE: requres pretrained model... will be uploaded soon... !
+Before running the inference, use `align.blend` to align the mesh to the face model. \
+We provide a jupyter notebook for the inference. `notebook/NFS_inference.ipynb` \
+We also provide a jupyter notebook for NFR inference. `notebook/NFR_inference.ipynb` \
+NOTE: This requires a model checkpoint. will be uploaded soon... !
 
 ## 4. Training
 After the data preparation, you can train your own model by using bash file `train.sh` as below:
