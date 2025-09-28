@@ -17,7 +17,7 @@ from models.CNN import TextureEncoder
 from utils.nfr_utils import Normalizer, get_dfn_info, calc_cent, reconstruct_jacobians
 from utils.remesh_utils import ICT_face_model
 from utils.mesh_utils import Renderer, calc_norm_torch, get_mesh_operators, get_jacobian_matrix
-from utils.mesh_utils import compute_wks_autoscale
+# from utils.mesh_utils import compute_wks_autoscale
 
 from .decoder import *
 from .encoder import *
