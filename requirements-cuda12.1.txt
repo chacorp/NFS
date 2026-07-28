@@ -1,11 +1,49 @@
-cupy==13.4.0
+# cuda 12.1 / python 3.10 stack
+# torch (install first, before torch-scatter/torch-sparse below)
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.1.0+cu121
+torchvision==0.16.0+cu121
+torchaudio==2.1.0+cu121
+
+# torch-scatter / torch-sparse (prebuilt wheels matching torch 2.1.0+cu121)
+-f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+torch-scatter==2.1.2
+torch-sparse==0.6.18
+
+# common
+numpy==1.24.4
+scipy==1.11.4
+trimesh==4.6.5
+matplotlib==3.4.3
+tqdm==4.65.0
+PyYAML==6.0.3
+Pillow==10.0.1
+opencv-python==4.11.0.86
+
+# mesh / geometry
 libigl==2.5.1
 open3d==0.19.0
-openmesh==1.2.1
+cupy-cuda12x==13.4.0
+robust_laplacian==1.0.0
+potpourri3d==1.2.1
+
+# visualization (eval_wav2rig_NFS.py)
+mediapy==1.1.2
+vedo==2024.5.1
 k3d==2.16.1
+
+# rendering utils (render/*.py only, not needed for train/eval)
 PyOpenGL==3.1.0
 pyrender==0.1.45
+
+# audio / third_party (MAASA wav2vec2 path)
+transformers==4.50.2
 transforms3d==0.4.2
 easydict==1.13
+
+# logging
 tensorboard==2.19.0
-# pip install torch_cluster -f https://data.pyg.org/whl/torch-2.1.0+cu121.html --no-cache-dir
+protobuf==6.30.2
+
+# pytorch3d: not pip-installable directly, see setup_uv.sh (mode 3 style: patch
+# cpp_extension.py, then `pip install git+https://github.com/facebookresearch/pytorch3d.git@v0.7.6`)

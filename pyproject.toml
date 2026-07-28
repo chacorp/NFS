@@ -1,0 +1,52 @@
+[project]
+name = "nfs"
+version = "0.1.0"
+requires-python = "==3.10.*"
+dependencies = [
+    "torch==2.1.0",
+    "torchvision==0.16.0",
+    "torchaudio==2.1.0",
+    "torch-scatter==2.1.2",
+    "torch-sparse==0.6.18",
+    "pytorch3d==0.7.5",
+    "numpy==1.24.4",
+    "scipy==1.11.4",
+    "trimesh==4.6.5",
+    "matplotlib==3.4.3",
+    "tqdm==4.65.0",
+    "pyyaml==6.0.3",
+    "pillow==10.0.1",
+    "opencv-python==4.11.0.86",
+    "libigl==2.5.1",
+    "open3d==0.19.0",
+    "cupy-cuda12x==13.4.0",
+    "robust-laplacian==1.0.0",
+    "potpourri3d==1.2.1",
+    "mediapy==1.1.2",
+    "vedo==2024.5.1",
+    "k3d==2.16.1",
+    "pyopengl==3.1.0",
+    "pyrender==0.1.45",
+    "transformers==4.50.2",
+    "transforms3d==0.4.2",
+    "easydict==1.13",
+    "tensorboard==2.19.0",
+    "protobuf==6.30.2",
+]
+
+# repo of standalone scripts, not an installable library
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu121" }
+torchvision = { index = "pytorch-cu121" }
+torchaudio = { index = "pytorch-cu121" }
+torch-scatter = { url = "https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp310-cp310-linux_x86_64.whl" }
+torch-sparse = { url = "https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_sparse-0.6.18%2Bpt21cu121-cp310-cp310-linux_x86_64.whl" }
+pytorch3d = { url = "https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py310_cu121_pyt210/pytorch3d-0.7.5-cp310-cp310-linux_x86_64.whl" }
